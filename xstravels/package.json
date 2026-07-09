@@ -1,0 +1,20 @@
+{
+  "name": "@capire/xstravels",
+  "version": "1.0.0",
+  "description": "Self-contained travel booking sample for the recap2026 workshop — xtravels + xflights + common + Customers all in one package.",
+  "scripts": {
+    "start": "cds-serve",
+    "watch": "cds watch",
+    "test": "cds test",
+    "lint": "npx eslint .",
+    "update-dates": "node db/data/update-dates.js"
+  },
+  "dependencies": {
+    "@sap/cds": "^10"
+  },
+  "devDependencies": {
+    "@cap-js/cds-test": "^1",
+    "@cap-js/sqlite": "^3"
+  },
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,131 @@
+using { sap.capire.travels as my } from '../../db/schema';
+
+annotate my.Travels with @title: '{i18n>Travel}' {
+  ID          @title: '{i18n>Travel}';
+  BeginDate   @title: '{i18n>BeginDate}';
+  EndDate     @title: '{i18n>EndDate}';
+  Description @title: '{i18n>Description}';
+  BookingFee  @title: '{i18n>BookingFee}'    @Measures.ISOCurrency: Currency_code;
+  TotalPrice  @title: '{i18n>TotalPrice}'    @Measures.ISOCurrency: Currency_code;
+  Customer    @title: '{i18n>Customer}'      @Common: { Text: Customer.Name, TextArrangement : #TextOnly };
+  Agency      @title: '{i18n>Agency}'        @Common: { Text: Agency.Name, TextArrangement : #TextOnly };
+  Status      @title: '{i18n>TravelStatus}'  @Common: { Text: Status.name, TextArrangement : #TextOnly };
+}
+
+annotate my.TravelStatus {
+  code @title: '{i18n>TravelStatus}'
+    @Common.Text: name
+    @UI.ValueCriticality: [
+      { Criticality: #Positive, Value: 'A', },
+      { Criticality: #Critical, Value: 'O', },
+      { Criticality: #Critical, Value: 'P', },
+      { Criticality: #Negative, Value: 'B', },
+      { Criticality: #Negative, Value: 'X', }
+    ]
+}
+
+annotate my.Bookings with @title: '{i18n>Booking}' {
+  Travel        @UI.Hidden;
+  Pos           @title: '{i18n>BookingID}';
+  BookingDate   @title: '{i18n>BookingDate}';
+  Flight        @title: '{i18n>Flight}';
+  Currency      @title: '{i18n>CurrencyCode}';
+  FlightPrice   @title: '{i18n>FlightPrice}'  @Measures.ISOCurrency: Currency_code;
+}
+
+annotate my.Bookings.Supplements with @title: '{i18n>BookingSupplement}' {
+  ID  @title: '{i18n>BookingSupplementID}'; // @Common.Text: booked.descr;
+  booked        @title: '{i18n>SupplementID}'  @Common.Text: booked.descr;
+  Price         @title: '{i18n>Price}'         @Measures.ISOCurrency: Currency_code;
+  Currency      @title: '{i18n>CurrencyCode}';
+}
+
+annotate my.TravelAgencies with @title: '{i18n>TravelAgency}' {
+  ID           @title: '{i18n>Agency}'      @Common.Text: Name;
+  Name         @title: '{i18n>Agency}';
+  Street       @title: '{i18n>Street}';
+  PostalCode   @title: '{i18n>PostalCode}';
+  City         @title: '{i18n>City}';
+  Country      @title: '{i18n>CountryCode}';
+  PhoneNumber  @title: '{i18n>PhoneNumber}';
+  EMailAddress @title: '{i18n>EMailAddress}';
+  WebAddress   @title: '{i18n>WebAddress}';
+}
+
+
+
+using { TravelService } from '../../srv/travel-flows';
+
+annotate TravelService.Travels with actions {
+  acceptTravel    @title: '{i18n>Accept}';
+  rejectTravel    @title: '{i18n>Reject}';
+  reopenTravel    @title: '{i18n>Reopen}';
+  deductDiscount  @title: '{i18n>DeductDiscount}';
+};
+
+
+
+using { sap.capire.travels.flights as x } from '../../db/flights';
+
+annotate x.Flights with @title: '{i18n>Flight}' {
+  ID              @title: '{i18n>FlightID}';
+  date            @title: '{i18n>FlightDate}';
+  departure       @title: '{i18n>DepartureTime}';
+  arrival         @title: '{i18n>ArrivalTime}';
+  free_seats      @title: '{i18n>MaximumSeats}';
+  airline         @title: '{i18n>Name}';
+  origin          @title: '{i18n>Origin}';
+  destination     @title: '{i18n>Destination}';
+}
+
+annotate x.Supplements with @title: '{i18n>Supplement}' {
+  ID              @title: '{i18n>SupplementID}'  @Common.Text: descr;
+  descr           @title: '{i18n>Description}';
+  price           @title: '{i18n>Price}'         @Measures.ISOCurrency: currency_code;
+  currency        @title: '{i18n>CurrencyCode}';
+}
+
+
+
+using { sap.capire.travels as s4 } from '../../db/schema';
+
+annotate s4.Customers with @title: '{i18n>Customer}' {
+  ID           @title: '{i18n>Customer}'    @Common.Text: Name;
+  Name         @title: '{i18n>Name}';
+  // Following are excluded as OData does not support flattening queries
+  // Street       @title: '{i18n>Street}';
+  // PostalCode   @title: '{i18n>PostalCode}';
+  // City         @title: '{i18n>City}';
+  // Country      @title: '{i18n>CountryCode}';
+  // PhoneNumber  @title: '{i18n>PhoneNumber}';
+  // EMailAddress @title: '{i18n>EMailAddress}';
+}
+
+
+
+// ---------------------------------------------------------------------------
+// TODO move the labels to the xflights app
+
+// using sap.capire.flights.data as x;
+
+// annotate x.Airlines with @title: '{i18n>Airline}' {
+//   ID              @title: '{i18n>AirlineID}'  @Common.Text: name;
+//   name            @title: '{i18n>Name}';
+//   currency        @title: '{i18n>CurrencyCode}';
+// }
+
+// annotate x.Flights with @title: '{i18n>Flight}' {
+//   aircraft        @title: '{i18n>PlaneType}';
+//   date            @title: '{i18n>FlightDate}';
+//   price           @title: '{i18n>Price}'        @Measures.ISOCurrency: currency_code;
+//   currency        @title: '{i18n>CurrencyCode}';
+//   maximum_seats   @title: '{i18n>MaximumSeats}';
+//   occupied_seats  @title: '{i18n>OccupiedSeats}';
+// }
+
+// annotate x.Supplements with @title: '{i18n>Supplement}' {
+//   ID              @title: '{i18n>SupplementID}'  @Common.Text: descr;
+//   price           @title: '{i18n>Price}'         @Measures.ISOCurrency: currency_code;
+//   currency        @title: '{i18n>CurrencyCode}';
+//   descr           @title: '{i18n>Description}';
+// }

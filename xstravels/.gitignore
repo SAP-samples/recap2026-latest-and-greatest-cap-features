@@ -1,0 +1,11 @@
+.DS_Store
+*.sqlite
+_out
+gen
+node_modules
+package-lock.json
+.env
+.cf
+
+# added by cds
+.cdsrc-private.json
