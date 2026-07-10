@@ -41,5 +41,5 @@
  
  You have successfully cloned the repository, installed the dependencies, and opened it in VS Code. You're now ready to start working with the CAP application.
  
- Continue to - [Exercise 1 - Explore and run the app](../ex1/README.md)
+ Continue to - [Exercise 2 - Explore and Run the App](02_Explore_and_Run.md)
  
