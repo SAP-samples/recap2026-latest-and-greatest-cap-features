@@ -10,6 +10,7 @@
     "update-dates": "node db/data/update-dates.js"
   },
   "dependencies": {
+    "@cap-js/ai": "^1.0.1",
     "@sap/cds": "^10"
   },
   "devDependencies": {

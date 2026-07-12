@@ -19,8 +19,10 @@
  ```cds
  using { TravelService } from './travel-service';
 
- annotate TravelService with @hcql;
+ annotate TravelService with @hcql @odata;
  ```
+
+ > **Note:** We add both `@hcql` and `@odata` to serve the service over both protocols. If you only annotate with `@hcql`, the OData endpoint is no longer available and the Fiori UI won't work.
 
  ### 2. Restart the server
 
@@ -34,12 +36,10 @@
 
  ```
  [cds] - serving TravelService {
-   at: [ '/hcql/travel' ],
+   at: [ '/odata/v4/travel', '/hcql/travel' ],
    ...
  }
  ```
-
- > **Note:** Adding `@hcql` explicitly makes it the served protocol. The OData endpoint (`/odata/v4/travel`) is replaced by the HCQL endpoint. The Fiori UI will still work because it is served as a static app.
 
  ### 3. Query with CQL text (plain text body)
 
