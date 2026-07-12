@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@cap-js/ai": "^1.0.1",
+    "@cap-js/mcp": "^1.1.1",
     "@sap/cds": "^10"
   },
   "devDependencies": {
