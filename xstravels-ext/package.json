@@ -1,0 +1,38 @@
+{
+  "name": "xstravels-ext",
+  "version": "1.0.0",
+  "description": "Extension template for @capire/xstravels — implement the validateReview extension point.",
+  "private": true,
+  "extends": "@capire/xstravels",
+  "workspaces": [".base"],
+  "scripts": {
+    "watch": "cds watch",
+    "typer": "npx @cap-js/cds-typer '*'"
+  },
+  "dependencies": {
+    "@sap/cds": "^10",
+    "@sap/cds-oyster": "^0.4"
+  },
+  "devDependencies": {
+    "@cap-js/cds-typer": "^0.40",
+    "@cap-js/cds-types": "^0.18",
+    "@cap-js/sqlite": "^3",
+    "@sap/cds-dk": "^10"
+  },
+  "imports": {
+    "#cds-models/*": "./@cds-models/*/index.js"
+  },
+  "cds": {
+    "server": { "port": 4006 },
+    "requires": {
+      "db": {
+        "kind": "sqlite",
+        "credentials": { "url": ":memory:" },
+        "data": { "folders": [ "test/data" ] }
+      },
+      "code-extensibility": {
+        "runtime": "debug"
+      }
+    }
+  }
+}

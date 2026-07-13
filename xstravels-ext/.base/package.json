@@ -1,0 +1,8 @@
+{
+  "name": "@capire/xstravels",
+  "cds": {
+    "requires": {
+      "cds.xt.ExtensibilityService": {}
+    }
+  }
+}

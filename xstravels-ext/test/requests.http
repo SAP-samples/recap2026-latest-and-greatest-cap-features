@@ -1,0 +1,46 @@
+### =============================================================================
+### xstravels-ext — extension tests
+###
+### Runs against the standalone `cds watch` on this project (port 4006).
+### The reference server bootstrap in `srv/server.js` wires `submitForReview`
+### to call the `validateReview` extension point, so any edits you make to
+### `srv/TravelExtensionService/on-validateReview.js` fire immediately after
+### `cds watch` reloads — no `cds push` needed for local iteration.
+###
+### To go all the way to a real tenant push, follow the flow described in
+### the Exercise 5 workshop file.
+### =============================================================================
+
+@app = http://localhost:4006
+
+### 1. Find an Open travel with low TotalPrice (cheap → passes any budget policy)
+GET {{app}}/odata/v4/travel/Travels?$top=3&$select=ID,Status_code,TotalPrice&$filter=Status_code eq 'O' and TotalPrice lt 1000
+Authorization: Basic alice:
+
+### 2. Find an Open travel with high TotalPrice (blocked once a budget policy is in place)
+GET {{app}}/odata/v4/travel/Travels?$top=3&$select=ID,Status_code,TotalPrice&$filter=Status_code eq 'O' and TotalPrice gt 10000
+Authorization: Basic alice:
+
+### 3. Submit a cheap travel for review — SUCCEEDS
+###    Replace <LOW_ID> with an ID from request 1.
+POST {{app}}/odata/v4/travel/Travels(ID=<LOW_ID>,IsActiveEntity=true)/TravelService.submitForReview
+Authorization: Basic alice:
+Content-Type: application/json
+
+{}
+
+### 4. Submit an expensive travel for review
+###    Replace <HIGH_ID> with an ID from request 2.
+###
+###    - Stub handler (default): SUCCEEDS silently. Status flips to InReview.
+###    - After you enable the > 10000 policy in on-validateReview.js:
+###        HTTP 409  {"message":"Total price ... exceeds policy limit ..."}
+POST {{app}}/odata/v4/travel/Travels(ID=<HIGH_ID>,IsActiveEntity=true)/TravelService.submitForReview
+Authorization: Basic alice:
+Content-Type: application/json
+
+{}
+
+### 5. Re-read the status of the expensive travel to confirm
+GET {{app}}/odata/v4/travel/Travels?$filter=ID eq <HIGH_ID>&$select=ID,Status_code,TotalPrice
+Authorization: Basic alice:
