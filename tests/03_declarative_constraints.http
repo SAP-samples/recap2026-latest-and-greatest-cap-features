@@ -1,0 +1,313 @@
+### =============================================================================
+### Exercise 3 — Declarative Constraints
+###
+### One SUCCESS + one FAILURE request per constraint pattern shown in the
+### workshop. The redundant siblings in `travel-constraints.cds` (Customer,
+### EndDate, BookingFee, FlightPrice, Bookings.Travel @mandatory) all follow
+### one of the patterns below — skim them in the source if curious.
+###
+### How to run:
+### 1. From `xstravels/`, run `npm run update-dates` so the seed data is
+###    anchored to today (±60/+90 days rolling window).
+### 2. Start the app:  `cds watch`   (defaults to port 4004)
+### 3. Open this file in VS Code with the "REST Client" extension installed,
+###    then click "Send Request" above each block.
+###
+### Every request runs under user `alice` (mocked auth).
+### =============================================================================
+
+@host      = http://localhost:4004
+@service   = {{host}}/odata/v4/travel
+@auth      = Basic alice:
+
+### -----------------------------------------------------------------------------
+### Helpers — discover valid seed data (the exact IDs and dates depend on when
+### you ran `npm run update-dates`, so start by picking real values from these
+### queries and use them in the requests below.)
+### -----------------------------------------------------------------------------
+
+### List a couple of Travels (grab an ID + its window)
+GET {{service}}/Travels?$top=3&$select=ID,BeginDate,EndDate,Currency_code,Status_code
+Authorization: {{auth}}
+
+### List a few Flights in USD within the current data window
+GET {{service}}/Flights?$top=5&$select=ID,date,currency_code,price&$filter=currency_code eq 'USD'&$orderby=date asc
+Authorization: {{auth}}
+
+### List a few Flights in EUR (used for the currency-mismatch test)
+GET {{service}}/Flights?$top=3&$select=ID,date,currency_code,price&$filter=currency_code eq 'EUR'
+Authorization: {{auth}}
+
+### =============================================================================
+### CONSTRAINTS ON `Travels`
+### =============================================================================
+
+### -----------------------------------------------------------------------------
+### 1) Description  — null check + string function
+###    when Description is null                 → 'Description is required'
+###    when length(trim(Description)) < 3       → 'Description is too short'
+### -----------------------------------------------------------------------------
+
+### 1a) ✅ SUCCESS — valid description
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Team offsite in Berlin",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "BookingFee":  10,
+  "Currency_code": "USD",
+  "Agency_ID":   "070001",
+  "Customer_ID": "000001"
+}
+
+### 1b) ❌ FAIL — description too short  →  "Description is too short"
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "AB",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "BookingFee":  10,
+  "Currency_code": "USD",
+  "Agency_ID":   "070001",
+  "Customer_ID": "000001"
+}
+
+
+### -----------------------------------------------------------------------------
+### 2) Agency  — @mandatory shorthand + `not exists <assoc>` referential check
+###    (Same shape as the `Customer` constraint — skip the near-duplicate.)
+### -----------------------------------------------------------------------------
+
+### 2a) ✅ SUCCESS — existing agency (070001 = Sunshine Travel)
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Trip with valid agency",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "Currency_code": "USD",
+  "Agency_ID":   "070001",
+  "Customer_ID": "000001"
+}
+
+### 2b) ❌ FAIL — Agency omitted  →  ASSERT_MANDATORY
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Trip without agency",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "Currency_code": "USD",
+  "Customer_ID": "000001"
+}
+
+### 2c) ❌ FAIL — Agency ID that does not exist  →  "Agency does not exist"
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Trip with unknown agency",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "Currency_code": "USD",
+  "Agency_ID":   "999999",
+  "Customer_ID": "000001"
+}
+
+
+### -----------------------------------------------------------------------------
+### 3) BeginDate / EndDate  — cross-field compare + filtered `exists` into to-many
+###    when EndDate < BeginDate → ASSERT_BEGINDATE_BEFORE_ENDDATE
+###                            + ASSERT_ENDDATE_AFTER_BEGINDATE  (mirror sibling)
+###    Both messages are reported — one per field — via MULTIPLE_ERRORS.
+### -----------------------------------------------------------------------------
+
+### 3a) ✅ SUCCESS — BeginDate before EndDate
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Trip in the right order",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "Currency_code": "USD",
+  "Agency_ID":   "070001",
+  "Customer_ID": "000001"
+}
+
+### 3b) ❌ FAIL — BeginDate after EndDate
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Trip with dates swapped",
+  "BeginDate":   "2026-08-15",
+  "EndDate":     "2026-08-10",
+  "Currency_code": "USD",
+  "Agency_ID":   "070001",
+  "Customer_ID": "000001"
+}
+
+
+### =============================================================================
+### CONSTRAINTS ON `Bookings`
+###
+### The service has a handler that blocks creating a Booking directly via
+### POST /Bookings (drafts only). Booking-level constraints are therefore
+### exercised here by creating a Travel with a nested Booking (composition).
+### =============================================================================
+
+### -----------------------------------------------------------------------------
+### 4) Bookings.Flight.date  — $self up to parent + `not between` range check
+###    when date not between $self.Travel.BeginDate and $self.Travel.EndDate
+###           → ASSERT_BOOKING_IN_TRAVEL_PERIOD
+###    Also mirrored on the parent side (BeginDate/EndDate) as
+###    ASSERT_BOOKINGS_IN_TRAVEL_PERIOD via a filtered-exists.
+### -----------------------------------------------------------------------------
+
+### 4a) ✅ SUCCESS — flight date inside the travel period
+###     Replace the Flight_ID and Flight_date with values returned by the
+###     "USD flights" helper query at the top of this file — pick one whose
+###     date lies between BeginDate and EndDate of the parent Travel.
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Trip with in-range booking",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "Currency_code": "USD",
+  "Agency_ID":   "070001",
+  "Customer_ID": "000001",
+  "Bookings": [
+    { "Pos": 1,
+      "Flight_ID":    "SW0067",
+      "Flight_date":  "2026-08-12",
+      "FlightPrice":  415,
+      "Currency_code":"USD" }
+  ]
+}
+
+### 4b) ❌ FAIL — flight date outside the travel period
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Trip with out-of-range booking",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "Currency_code": "USD",
+  "Agency_ID":   "070001",
+  "Customer_ID": "000001",
+  "Bookings": [
+    { "Pos": 1,
+      "Flight_ID":    "SW1537",
+      "Flight_date":  "2026-09-21",
+      "FlightPrice":  805,
+      "Currency_code":"USD" }
+  ]
+}
+
+
+### -----------------------------------------------------------------------------
+### 5) Bookings.Currency  — child value must match the parent's
+###    when Currency != Travel.Currency → ASSERT_BOOKING_CURRENCY_MATCHES_TRAVEL
+### -----------------------------------------------------------------------------
+
+### 5a) ✅ SUCCESS — same currency as the travel
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Trip with matching currency",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "Currency_code": "USD",
+  "Agency_ID":   "070001",
+  "Customer_ID": "000001",
+  "Bookings": [
+    { "Pos": 1,
+      "Flight_ID":    "SW0067",
+      "Flight_date":  "2026-08-12",
+      "FlightPrice":  415,
+      "Currency_code":"USD" }
+  ]
+}
+
+### 5b) ❌ FAIL — booking currency (EUR) differs from travel currency (USD)
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description": "Trip with mismatched currency",
+  "BeginDate":   "2026-08-10",
+  "EndDate":     "2026-08-15",
+  "Currency_code": "USD",
+  "Agency_ID":   "070001",
+  "Customer_ID": "000001",
+  "Bookings": [
+    { "Pos": 1,
+      "Flight_ID":    "SW0067",
+      "Flight_date":  "2026-08-12",
+      "FlightPrice":  415,
+      "Currency_code":"EUR" }
+  ]
+}
+
+
+### -----------------------------------------------------------------------------
+### 6) Bookings.BookingDate  — constraint on a child, but fires when the *parent*
+###    is edited. `BookingDate` is @Core.Computed (defaults to $now, read-only
+###    for clients), so the realistic way to violate this is to shrink the
+###    parent Travel's window until an existing booking is orphaned.
+###
+###    The 3-step draft flow below is the whole point: it demonstrates that
+###    constraints re-evaluate on `draftActivate` against *all* affected rows,
+###    including children the client didn't touch.
+### -----------------------------------------------------------------------------
+
+### 6a) Put an existing Travel into edit mode (draft).
+###     Adjust the ID to a Travel that has bookings — Travel 1 works out of
+###     the box with the seed data.
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.draftEdit
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "PreserveChanges": true }
+
+### 6b) PATCH the draft's EndDate to before the earliest existing booking.
+###     Travel 1's earliest booking sits around 2026-09-18; shrinking EndDate
+###     to 2026-09-15 orphans it.
+PATCH {{service}}/Travels(ID=1,IsActiveEntity=false)
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "EndDate": "2026-09-15" }
+
+### 6c) ❌ FAIL — activate the draft. The framework evaluates every affected
+###     constraint and reports them together. You'll see
+###     `ASSERT_NO_BOOKINGS_AFTER_TRAVEL` in the `details` array (alongside
+###     the begin/end-date and travel-period constraints that also trip when
+###     the window shrinks).
+POST {{service}}/Travels(ID=1,IsActiveEntity=false)/TravelService.draftActivate
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}

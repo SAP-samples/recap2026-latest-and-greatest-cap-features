@@ -31,9 +31,9 @@
     npm i -g @sap/cds-dk
     ```
  
- 8. Navigate to the base-app directory and install dependencies:
+ 8. Navigate to the `xstravels` directory and install dependencies:
     ```bash
-    cd base-app
+    cd xstravels
     npm install
     ```
  
