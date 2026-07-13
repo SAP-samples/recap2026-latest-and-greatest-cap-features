@@ -6,6 +6,21 @@ In this exercise, you will learn how to add **declarative validation constraints
 
 Make sure you have completed [Exercise 2 - Explore and Run the App](02_Explore_and_Run.md).
 
+## Why declarative over imperative?
+
+A guiding principle in CAP: **prefer declarative over imperative — use custom code only as a last resort.**
+
+Validation logic written as `@assert` annotations in CDS rather than imperative `before` handlers in JavaScript gives you:
+
+- **Less code, fewer bugs** — no handler boilerplate, no forgotten `req.reject()` paths, no risk of silently swallowing errors.
+- **Single source of truth** — the model documents what "valid" means; no need to cross-reference handlers.
+- **Consistent enforcement** — constraints fire on every write path (OData, REST, drafts, deep-inserts, service-to-service calls) without repeating logic.
+- **Database push-down** — the runtime can evaluate constraints via a single SQL query, avoiding full-record fetches.
+- **Automatic i18n** — return a message key and CAP resolves it to the caller's locale.
+- **Tooling support** — editors, linters, and AI assistants can reason about annotations; opaque handler code is a black box.
+
+Reserve custom handlers for logic that truly cannot be expressed declaratively (e.g., calling external services, generating side effects, or computing values that depend on runtime state).
+
 ## What is `@assert`?
 
 `@assert` is a CDS annotation you attach to any element (field or association) of an entity. Its value is a **CDS expression** — typically a `case`-statement — that returns either `null` (no error) or an error **message key**. When the framework processes a write (`CREATE`, `UPDATE`, `PATCH`, or a nested composition write), it evaluates the expression:
