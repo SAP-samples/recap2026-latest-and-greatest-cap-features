@@ -1,0 +1,127 @@
+### =============================================================================
+### Exercise 4 — Status Flows
+###
+### Walks the Travel through its state machine using the actions annotated in
+### `xstravels/srv/travel-flows.cds`:
+###
+###   Open ──acceptTravel──► Accepted ──reopenTravel──► Open
+###     │                       ▲
+###     └──rejectTravel──► Rejected ──reopenTravel──► Open
+###
+###   deductDiscount is only allowed while a travel is Open (guard-only,
+###   does not change state).
+###
+### How to run:
+### 1. From `xstravels/`, run `npm run update-dates` and start `cds watch`.
+### 2. Open this file in VS Code with the REST Client extension.
+### 3. Send the requests in order — each block notes the expected outcome.
+###
+### Every request runs under user `alice` (mocked auth, has admin role).
+### =============================================================================
+
+@host      = http://localhost:4004
+@service   = {{host}}/odata/v4/travel
+@auth      = Basic alice:
+
+### -----------------------------------------------------------------------------
+### Helper — find open travels (pick one with a fresh ID for the walk-through)
+### -----------------------------------------------------------------------------
+
+### List a few Open travels
+GET {{service}}/Travels?$top=5&$select=ID,Status_code&$filter=Status_code eq 'O'
+Authorization: {{auth}}
+
+
+### =============================================================================
+### Happy-path walk-through (Travel 1 by default)
+### =============================================================================
+
+### 1. Status now: Open (as seeded)
+GET {{service}}/Travels(1)?$select=ID,Status_code
+Authorization: {{auth}}
+
+### 2. Deduct 10 % discount — allowed because the travel is Open
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.deductDiscount
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "percent": 10 }
+
+### 3. Accept the travel:  Open ──► Accepted
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.acceptTravel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### 4. Re-read status — now "A"
+GET {{service}}/Travels(1)?$select=ID,Status_code
+Authorization: {{auth}}
+
+### 5. Re-open it:  Accepted ──► Open
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.reopenTravel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### 6. Reject it:  Open ──► Rejected
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.rejectTravel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### 7. Re-read status — now "X"
+GET {{service}}/Travels(1)?$select=ID,Status_code
+Authorization: {{auth}}
+
+### 8. Re-open from Rejected:  Rejected ──► Open
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.reopenTravel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+
+### =============================================================================
+### Illegal-transition probes — each should return 409 Conflict with
+### `INVALID_FLOW_TRANSITION_SINGLE` or `..._MULTI`
+### =============================================================================
+
+### First: put Travel 1 back to Accepted so the next probe has something to hit
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.acceptTravel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### 9. ❌ acceptTravel while already Accepted → INVALID_FLOW_TRANSITION_SINGLE
+###    `acceptTravel` requires Status = Open.
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.acceptTravel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### 10. ❌ deductDiscount on a non-Open travel → INVALID_FLOW_TRANSITION_SINGLE
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.deductDiscount
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "percent": 10 }
+
+### 11. Reset to Open, then probe reopen-on-Open
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.reopenTravel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### 12. ❌ reopenTravel while already Open → INVALID_FLOW_TRANSITION_MULTI
+###    (MULTI because reopen has two source states: [Rejected, Accepted])
+POST {{service}}/Travels(ID=1,IsActiveEntity=true)/TravelService.reopenTravel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}

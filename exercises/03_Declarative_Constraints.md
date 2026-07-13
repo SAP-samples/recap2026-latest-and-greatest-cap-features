@@ -229,7 +229,7 @@ The activate returns `200` — the row is not treated as its own overlap.
 If you have time left, try adding one of these on your own:
 
 - **Same-agency lock**: forbid moving a travel to a different agency once it has bookings (`when exists Bookings and Agency_ID != <previous value>` — hint: use a `before UPDATE` handler if you need the *old* value; declarative constraints only see the *new* one).
-- **BookingFee cap** relative to the total price: `when BookingFee > TotalPrice * 0.5` — a Business rule saying the fee can't exceed 50 % of the trip.
+- **BookingFee cap** relative to the total price: `when BookingFee > TotalPrice * 0.5` — a business rule saying the fee can't exceed 50 % of the trip.
 - **Localize** the new key to `messages_de.properties` and switch the browser locale via `?sap-language=de` to see the German error text.
 
 ## Summary
