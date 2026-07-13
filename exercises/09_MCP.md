@@ -6,12 +6,6 @@
 
  Make sure you have completed [Exercise 8 - AI Plugin](08_AI_Plugin.md).
 
- You also need:
- - Access to an LLM (e.g., an Anthropic API key or OpenAI API key configured for your MCP client)
- - One of the following MCP clients installed:
-   - [Claude Code](https://code.claude.com/docs/en/overview) — `brew install claude-code`
-   - [OpenCode](https://opencode.ai/) — `npm i -g opencode-ai`
-
  ## What is MCP?
 
  The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open-source standard that enables direct integration between LLM applications and external data sources. From a CAP developer's perspective, `@mcp` is just another protocol — similar to `@odata`, `@graphql`, `@rest`, or `@hcql`. The adapter takes care of the rest, and all standard CAP features work out of the box.
@@ -38,21 +32,11 @@
  ```cds
  using { TravelService } from './travel-service';
 
- annotate TravelService with @mcp;
- ```
-
- ### 3. Add custom instructions for the AI agent (optional)
-
- You can provide context to help the AI agent understand your service better. Update `srv/travel-mcp.cds`:
-
- ```cds
- using { TravelService } from './travel-service';
-
  annotate TravelService with @mcp
    @mcp.instructions: 'This service manages travel bookings. Use describe to explore available entities like Travels, Bookings, Customers, and Flights. Use query to search travels by status, date range, or agency.';
  ```
 
- ### 4. Start the server
+ ### 3. Start the server
 
  ```bash
  cds watch
@@ -62,59 +46,61 @@
 
  ```
  [cds] - serving TravelService {
-   at: [ ..., '/mcp/travel' ],
+   at: [ '/odata/v4/travel', '/hcql/travel', '/mcp/travel' ],
    ...
  }
  ```
 
- The plugin also **autowires** the MCP server into your local MCP clients (Claude Code, OpenCode). This means no additional client configuration is needed for local development.
+ ### 4. Explore with the MCP Inspector
 
- ### 5. Query your service with natural language
+ The MCP Inspector is a web-based tool to explore and test your MCP server — no LLM required.
 
- Open your MCP client and ask questions about your travel data:
-
- **With Claude Code:**
- ```bash
- claude "list all open travels with their agency and total price"
- ```
-
- **With OpenCode:**
- ```bash
- opencode run "list all open travels with their agency and total price"
- ```
-
- The AI agent will use the `describe` tool to understand your data model, then the `query` tool to fetch the data. You should see something like:
-
- ```
- ⏺ cds:TravelService - describe (MCP)()
- ⏺ cds:TravelService - query (MCP)(entity: "Travels", select: ["ID","Description","Agency.Name","TotalPrice","Status.name"], where: [...], limit: 20)
- ```
-
- ### 6. Try more complex queries
-
- Ask the agent more interesting questions:
-
- - *"Which travel agencies have the most bookings?"*
- - *"Show me travels starting next month sorted by total price"*
- - *"List all flights used in bookings for travel 1"*
- - *"What is the average booking fee across all open travels?"*
-
- ### 7. Inspect with the MCP Inspector (optional)
-
- You can also use the official MCP Inspector to explore the tools:
+ In a **new terminal**, run:
 
  ```bash
  npx @modelcontextprotocol/inspector
  ```
 
+ This opens a browser window. Configure it:
+
  1. Select **Streamable HTTP** as Transport Type
  2. Enter the URL: `http://localhost:4004/mcp/travel`
- 3. Select **Via Proxy** and click **Connect**
- 4. Go to the **Tools** tab and click **List Tools**
- 5. Select the **describe** tool and run it to see your data model
- 6. Select the **query** tool, choose an entity, and run it to fetch data
+ 3. Add an Authorization header: `Basic YWxpY2U6` (this is `alice:` base64-encoded)
+ 4. Select **Via Proxy** and click **Connect**
 
- ### 8. Check the server logs
+ ### 5. Discover the data model
+
+ In the Inspector:
+
+ 1. Go to the **Tools** tab and click **List Tools**
+ 2. You should see three tools: `describe`, `query`, and `call_action`
+ 3. Select the **describe** tool and click **Run Tool**
+
+ The response shows all entities (Travels, Bookings, Customers, Flights, etc.) with their fields, types, and descriptions. This is what an AI agent uses to understand your data.
+
+ 4. Run **describe** again, this time with the `entities` parameter set to `["Travels"]` to see its full element details.
+
+ ### 6. Query data through MCP
+
+ Still in the Inspector:
+
+ 1. Select the **query** tool
+ 2. Set `entity` to `Travels`
+ 3. Add a `select` parameter:
+    ```json
+    [{"ref":["ID"]}, {"ref":["Description"]}, {"ref":["TotalPrice"]}, {"ref":["Status","name"], "as":"Status"}]
+    ```
+ 4. Set `limit` to `5`
+ 5. Click **Run Tool**
+
+ You should see travel records returned in TOON format (a compact, token-efficient representation).
+
+ Try a filtered query — add a `where` parameter:
+ ```json
+ [{"ref":["Status","code"]}, "=", {"val":"O"}]
+ ```
+
+ ### 7. Check the server logs
 
  Back in your `cds watch` terminal, observe the MCP requests being logged:
 
@@ -125,14 +111,49 @@
    select: [
      { ref: [ 'ID' ] },
      { ref: [ 'Description' ] },
-     { ref: [ 'Agency', 'Name' ] },
      { ref: [ 'TotalPrice' ] },
      { ref: [ 'Status', 'name' ] }
    ]
  }
  ```
 
- This shows how the AI agent translates natural language into structured CQL queries against your service.
+ This shows how tool calls are translated into CQL queries against your service.
+
+ ---
+
+ ## Optional: Query with natural language (requires LLM access)
+
+ If you have access to an LLM, you can use an MCP client to interact with your service using natural language. The CAP MCP adapter **autowires** into local clients automatically during `cds watch`.
+
+ ### Using Claude Code
+
+ Install: `brew install claude-code`
+
+ ```bash
+ claude "list all open travels with their agency and total price"
+ ```
+
+ ### Using OpenCode
+
+ Install: `npm i -g opencode-ai`
+
+ ```bash
+ opencode run "list all open travels with their agency and total price"
+ ```
+
+ The agent will call `describe` to understand the model, then `query` to fetch data:
+
+ ```
+ ⏺ cds:TravelService - describe (MCP)()
+ ⏺ cds:TravelService - query (MCP)(entity: "Travels", select: ["ID","Description","Agency.Name","TotalPrice","Status.name"], where: [...], limit: 20)
+ ```
+
+ Try more questions:
+ - *"Which travel agencies have the most bookings?"*
+ - *"Show me travels starting next month sorted by total price"*
+ - *"What is the average booking fee across all open travels?"*
+
+ > **Note:** Output varies depending on the LLM's interpretation of your question.
 
  ## Good to Know
 
@@ -159,8 +180,8 @@
  - Install the `@cap-js/mcp` plugin with `npm add @cap-js/mcp`
  - Expose a CAP service via MCP with the `@mcp` annotation
  - Add custom instructions with `@mcp.instructions`
- - Query your service using natural language from an AI agent
- - Inspect MCP tools with the MCP Inspector
- - Understand how natural language is translated into CQL queries
+ - Explore and test MCP tools using the MCP Inspector (no LLM needed)
+ - Query your service using natural language from an AI agent (optional)
+ - Understand how tool calls are translated into CQL queries
 
  Continue to - [Exercise 10 - Recap and Next Steps](10_Recap.md)
