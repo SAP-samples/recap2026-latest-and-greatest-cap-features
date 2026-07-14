@@ -1,0 +1,139 @@
+### =============================================================================
+### Exercise 5 — Sandbox Extensibility
+###
+### Exercises the validateReview extension point wired into submitForReview.
+### Two paths are covered — pick the one matching your setup:
+###
+###   Path A — standalone iteration on the extension template (port 4006)
+###     Prereq: `cd xstravels-ext && npm install && cds watch`
+###     Fastest edit-save-test loop; no mtx sidecar needed.
+###
+###   Path B — production-like tenant push (port 4004)
+###     Prereq: xstravels has multitenancy + sandbox enabled;
+###             sidecar on 4005; main app on 4004 with --with-mtx;
+###             tenant t1 subscribed; extension pushed via `cds push`.
+###
+### The requests are identical between paths — only the base URL changes.
+### =============================================================================
+
+@app  = http://localhost:4006
+### Switch to @app = http://localhost:4004 for Path B (tenant push).
+
+@service = {{app}}/odata/v4/travel
+@auth    = Basic alice:
+
+
+### -----------------------------------------------------------------------------
+### Helpers — find suitable travels for the three policy scenarios
+### -----------------------------------------------------------------------------
+
+### List a couple of Open travels with low TotalPrice — pass all rules
+GET {{service}}/Travels?$top=3&$select=ID,Status_code,TotalPrice,Currency_code&$filter=Status_code eq 'O' and TotalPrice lt 1000
+Authorization: {{auth}}
+
+### List a couple of Open USD travels with high TotalPrice — trip Rule 1 (total cap)
+GET {{service}}/Travels?$top=3&$select=ID,Status_code,TotalPrice,Currency_code&$filter=Status_code eq 'O' and Currency_code eq 'USD' and TotalPrice gt 10000
+Authorization: {{auth}}
+
+### Find travels that carry a single Booking above 5000 — trip Rule 2b (per-booking cap)
+GET {{service}}/Bookings?$top=5&$select=Travel_ID,Pos,FlightPrice&$filter=FlightPrice gt 5000
+Authorization: {{auth}}
+
+
+### =============================================================================
+### 5.1 — Total-price cap (10 000)
+###   With the handler enabled (Step 5.1 of the exercise):
+###     if travel.TotalPrice > 10000 → req.reject(409, "Total price ...")
+### =============================================================================
+
+### ✅ Cheap travel → succeeds, Status_code flips to 'P' (InReview)
+POST {{service}}/Travels(ID=13,IsActiveEntity=true)/TravelService.submitForReview
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### Confirm the transition
+GET {{service}}/Travels?$filter=ID eq 13&$select=ID,Status_code,TotalPrice,Currency_code
+Authorization: {{auth}}
+
+### ❌ Expensive travel → 409, "Total price 10322.5000 exceeds the 10000 policy limit"
+POST {{service}}/Travels(ID=2,IsActiveEntity=true)/TravelService.submitForReview
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+
+### =============================================================================
+### 5.3 — Empty-bookings + per-booking cap (5 000)
+###   With the handler extended (Step 5.3):
+###     if !bookings.length → "Travel has no bookings ..."
+###     if bookings.some(b => b.FlightPrice > 5000) → "At least one booking ..."
+### =============================================================================
+
+### Prep: Travel 100 is seeded as Rejected, and one booking sits at 5852.
+### Reopen it first so it becomes Open and eligible for submitForReview.
+POST {{service}}/Travels(ID=100,IsActiveEntity=true)/TravelService.reopenTravel
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### ❌ Per-booking cap → 409, "At least one booking exceeds the 5000 per-booking cap"
+POST {{service}}/Travels(ID=100,IsActiveEntity=true)/TravelService.submitForReview
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### For the empty-bookings rule, create a fresh travel with no bookings, then
+### activate the draft, then submit for review.
+###
+### If your setup keeps the draft after CREATE, replace <NEW_ID> below with the
+### ID returned from this POST.
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description":   "Empty trip",
+  "BeginDate":     "2026-08-10",
+  "EndDate":       "2026-08-15",
+  "Currency_code": "USD",
+  "Agency_ID":     "070001",
+  "Customer_ID":   "000001"
+}
+
+### Activate the draft (replace <NEW_ID>)
+POST {{service}}/Travels(ID=<NEW_ID>,IsActiveEntity=false)/TravelService.draftActivate
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### ❌ Empty travel → 409, "Travel has no bookings — cannot submit for review"
+POST {{service}}/Travels(ID=<NEW_ID>,IsActiveEntity=true)/TravelService.submitForReview
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+
+### =============================================================================
+### 5.6 — Currency-aware limits (bonus)
+###   With the CurrencyLimits table added:
+###     USD MaxTravel = 10000     SGD MaxTravel = 14000
+###     USD MaxBooking = 5000     SGD MaxBooking = 7000
+### =============================================================================
+
+### ✅ SGD travel, Total ~11 963 → passes (SGD MaxTravel is 14 000)
+POST {{service}}/Travels(ID=182,IsActiveEntity=true)/TravelService.submitForReview
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+### Confirm SGD travel is now InReview
+GET {{service}}/Travels?$filter=ID eq 182&$select=ID,Status_code,TotalPrice,Currency_code
+Authorization: {{auth}}
