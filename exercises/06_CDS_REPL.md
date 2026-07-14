@@ -19,11 +19,19 @@ The CDS REPL is a Read-Eval-Print Loop built on top of Node's standard REPL, lau
 
 ## Step 1 — Start a REPL against xstravels
 
-From `xstravels/`:
+From the `xstravels/` directory:
 
 ```sh
 cds repl --run .
 ```
+
+The trailing `.` is **required** — it tells the REPL which project to boot. Omitting it, or passing `--run` without an argument, produces:
+
+```
+Error: No such folder or package: '.../xstravels' -> 'true'
+```
+
+`cds repl -r .` is a shorter equivalent.
 
 After the usual boot messages (schema deployed, both services served), you'll see the REPL's global-context summary and the `>` prompt:
 
