@@ -28,11 +28,17 @@ The setup you'd use once you're happy with the handler.
 
 ```sh
 # Assumes xstravels/ has multitenancy + sandbox enabled and both the sidecar
-# (port 4005) and the main app (port 4004) are running. Tenant t1 subscribed.
+# (port 4005) and the main app (port 4004) are running. Tenant t1 subscribed
+# via: `cds subscribe t1 --to http://localhost:4005 -u yves:`
 
 npm install
 cds push --to http://localhost:4005 -u bob:     # after each edit
 ```
+
+> **Different users per call**: `cds subscribe/unsubscribe` needs **yves**
+> (has `internal-user`); `cds pull/push` needs **bob** (has
+> `cds.ExtensionDeveloper`); everyday HTTP tests against the running app use
+> **alice** (admin). All three log in with an empty password.
 
 The base model (`.base/`) is shipped with this template — no `cds pull` step required.
 

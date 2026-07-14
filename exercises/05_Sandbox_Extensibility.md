@@ -4,9 +4,6 @@ In this exercise, you will turn a single line of an internal state machine into 
 
 > This is a compressed single chapter for what the full [`cap-js/extensibility-sample`](https://github.com/cap-js/extensibility-sample) workshop covers in 11 chapters. If you're serious about shipping an extensible CAP app, work through that at some point.
 
-## Prerequisites
-
-
 ## Patch-first — if you skipped Exercise 4
 
 If you have completed [Exercise 4 - Status Flows](04_Status_Flows.md), skip this section and
@@ -113,8 +110,18 @@ Finally, subscribe a tenant. This creates the tenant DB the extension will be pu
 
 ```sh
 # Terminal 3 — one-time tenant subscription
-cds subscribe t1 --to http://localhost:4005
+cds subscribe t1 --to http://localhost:4005 -u yves:
 ```
+
+> **Who's who?** The workshop uses three mocked users, each with a different role. Keep this handy — CAP will 403 you fast if you use the wrong one:
+>
+> | User | Role                       | Use for                                                                 |
+> |------|----------------------------|-------------------------------------------------------------------------|
+> | `yves` | `internal-user`          | `cds subscribe` / `cds unsubscribe` (tenant onboarding)                 |
+> | `bob`  | `cds.ExtensionDeveloper` | `cds pull` / `cds push` (extension lifecycle)                           |
+> | `alice`| `admin`                  | Everyday app calls (Fiori UI, `submitForReview`, HTTP tests, `deductDiscount`) |
+>
+> All three run with an **empty password** — the default mocked-auth just needs the user name.
 
 ## Step 2 — Declare the extension service
 
@@ -253,7 +260,7 @@ cds push --to http://localhost:4005 -u bob:     # after each edit
 
 The compiled base model (`.base/`) is shipped with the template — no `cds pull` step required.
 
-> **Why `bob`?** In the default mocked-auth config, `bob` has the `cds.ExtensionDeveloper` role required by the sidecar's extensibility service.
+> **Why `bob` here?** The sidecar's extensibility service requires the `cds.ExtensionDeveloper` role, which `bob` has by default in the mocked-auth config. See the who's-who table under Step 1 for the other mocked users.
 
 ## Step 5 — Write a real handler
 
