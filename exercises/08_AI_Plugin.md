@@ -2,10 +2,7 @@
 
  In this exercise, you will add the `@cap-js/ai` plugin to your travel application. The plugin provides out-of-the-box AI-powered field recommendations in Fiori Elements UIs, leveraging SAP RPT-1. You will first test it locally (with a mock service) and then optionally connect it to a real SAP AI Core instance.
 
- ## Prerequisites
-
- Make sure you have completed [Exercise 7 - HCQL](07_HCQL.md).
-
+ 
  ## What is the AI Plugin?
 
  The [`@cap-js/ai`](https://github.com/cap-js/ai) plugin bundles two AI capabilities:

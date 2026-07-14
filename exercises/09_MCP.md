@@ -2,10 +2,7 @@
 
  In this exercise, you will expose your CAP Travel Service as an MCP (Model Context Protocol) server, allowing AI agents to interact with your travel data through natural language.
 
- ## Prerequisites
-
- Make sure you have completed [Exercise 8 - AI Plugin](08_AI_Plugin.md).
-
+ 
  ## What is MCP?
 
  The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open-source standard that enables direct integration between LLM applications and external data sources. From a CAP developer's perspective, `@mcp` is just another protocol — similar to `@odata`, `@graphql`, `@rest`, or `@hcql`. The adapter takes care of the rest, and all standard CAP features work out of the box.

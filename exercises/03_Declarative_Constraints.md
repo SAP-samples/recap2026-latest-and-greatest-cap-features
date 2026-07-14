@@ -2,9 +2,6 @@
 
 In this exercise, you will learn how to add **declarative validation constraints** to your CDS model using the `@assert` annotation. Instead of writing custom code in service handlers to reject invalid input, you annotate your model with an expression — and CAP takes care of the rest.
 
-## Prerequisites
-
-Make sure you have completed [Exercise 2 - Explore and Run the App](02_Explore_and_Run.md).
 
 ## Why declarative over imperative?
 

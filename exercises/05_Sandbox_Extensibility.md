@@ -6,9 +6,11 @@ In this exercise, you will turn a single line of an internal state machine into 
 
 ## Prerequisites
 
-Make sure you have completed [Exercise 4 - Status Flows](04_Status_Flows.md). If you jumped straight here, apply the Exercise 4 edits first — see the [patch-first block](#patch-first-if-you-skipped-exercise-4) below.
 
 ## Patch-first — if you skipped Exercise 4
+
+If you have completed [Exercise 4 - Status Flows](04_Status_Flows.md), skip this section and
+proceed with [What we're building](#what-were-building).
 
 Ex5 builds on the `submitForReview` action introduced in Ex4. If it isn't in your code yet, apply these two edits before starting:
 

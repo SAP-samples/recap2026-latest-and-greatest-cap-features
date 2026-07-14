@@ -2,9 +2,6 @@
 
 In this exercise, you will learn how the `@flow.status` annotation turns a plain status field into a **state machine**. CAP then enforces which actions are legal in which state, updates the status automatically, and can even generate the corresponding Fiori UI — all from a single CDS declaration.
 
-## Prerequisites
-
-Make sure you have completed [Exercise 3 - Declarative Constraints](03_Declarative_Constraints.md).
 
 ## What is `@flow.status`?
 

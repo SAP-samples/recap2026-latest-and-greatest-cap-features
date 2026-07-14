@@ -2,10 +2,7 @@
 
  In this exercise, you will enable the HCQL (CQL over HTTP) protocol adapter on your travel service and use it to run powerful queries directly against your CAP service.
 
- ## Prerequisites
-
- Make sure you have completed [Exercise 6 - CDS REPL](06_CDS_REPL.md).
-
+ 
  ## What is HCQL?
 
  HCQL stands for **CQL over HTTP**. It exposes your CAP services via an HTTP endpoint that accepts CQL queries — either as CQN (JSON) or as plain CQL text (Node.js only). Compared to OData, REST, or GraphQL, CQL is the most native query language to CAP and thus the most efficient and feature-rich option for CAP-to-CAP service integrations and data federation scenarios.

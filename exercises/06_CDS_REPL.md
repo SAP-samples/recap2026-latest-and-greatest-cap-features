@@ -2,9 +2,6 @@
 
 In this exercise, you will learn how to use the **CDS REPL** — an interactive Node.js shell that boots your CAP application in-process. From the prompt you can query the database, invoke services, and evaluate CQL directly, without running `cds watch` and issuing HTTP requests.
 
-## Prerequisites
-
-Make sure you have completed [Exercise 5 - Sandbox Extensibility](05_Sandbox_Extensibility.md).
 
 ## What is the CDS REPL?
 
