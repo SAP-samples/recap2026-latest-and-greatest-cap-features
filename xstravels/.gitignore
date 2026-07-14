@@ -3,6 +3,7 @@
 _out
 gen
 node_modules
+@cds-models
 package-lock.json
 .env
 .cf

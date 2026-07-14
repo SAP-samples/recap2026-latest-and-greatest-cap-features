@@ -12,9 +12,17 @@
 ###   does not change state).
 ###
 ### How to run:
-### 1. From `xstravels/`, run `npm run update-dates` and start `cds watch`.
+### 1. From `xstravels/`, start `cds watch`.
 ### 2. Open this file in VS Code with the REST Client extension.
 ### 3. Send the requests in order — each block notes the expected outcome.
+###
+### Reading responses:
+###   204 No Content → success. Bound actions like acceptTravel/rejectTravel
+###     succeed without returning a body — this is the expected result, NOT
+###     an error. Re-read the travel with a GET afterwards to confirm the
+###     Status_code flipped.
+###   409 Conflict with code INVALID_FLOW_TRANSITION_{SINGLE,MULTI} → the
+###     action was called while the row was in a state not allowed by `@from`.
 ###
 ### Every request runs under user `alice` (mocked auth, has admin role).
 ### =============================================================================

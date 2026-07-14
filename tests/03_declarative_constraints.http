@@ -7,11 +7,16 @@
 ### one of the patterns below — skim them in the source if curious.
 ###
 ### How to run:
-### 1. From `xstravels/`, run `npm run update-dates` so the seed data is
-###    anchored to today (±60/+90 days rolling window).
-### 2. Start the app:  `cds watch`   (defaults to port 4004)
-### 3. Open this file in VS Code with the "REST Client" extension installed,
+### 1. From `xstravels/`, start the app: `cds watch` (defaults to port 4004).
+### 2. Open this file in VS Code with the "REST Client" extension installed,
 ###    then click "Send Request" above each block.
+###
+### Reading responses:
+###   201 Created / 200 OK / 204 No Content → success. "No Content" is the
+###     expected response for bound actions that update state without returning
+###     a payload — it is NOT an error.
+###   400 / 409 → the response body's `error.message` (or `error.details[]`)
+###     names the constraint that fired.
 ###
 ### Every request runs under user `alice` (mocked auth).
 ### =============================================================================
@@ -21,9 +26,9 @@
 @auth      = Basic alice:
 
 ### -----------------------------------------------------------------------------
-### Helpers — discover valid seed data (the exact IDs and dates depend on when
-### you ran `npm run update-dates`, so start by picking real values from these
-### queries and use them in the requests below.)
+### Helpers — discover valid seed data. The requests below use dates and IDs
+### that match the pristine seed. If you've modified data, run these first to
+### pick real values.
 ### -----------------------------------------------------------------------------
 
 ### List a couple of Travels (grab an ID + its window)
@@ -292,14 +297,16 @@ Content-Type: application/json
 
 { "PreserveChanges": true }
 
-### 6b) PATCH the draft's EndDate to before the earliest existing booking.
-###     Travel 1's earliest booking sits around 2026-09-18; shrinking EndDate
-###     to 2026-09-15 orphans it.
+### 6b) PATCH the draft's EndDate to before every existing booking.
+###     Travel 1's bookings sit on 2026-06-25 and 2026-07-09; shrinking EndDate
+###     to 2026-06-20 orphans them. This will also trip
+###     ASSERT_BEGINDATE_BEFORE_ENDDATE + ASSERT_BOOKING_IN_TRAVEL_PERIOD as
+###     collateral (all reported together via MULTIPLE_ERRORS).
 PATCH {{service}}/Travels(ID=1,IsActiveEntity=false)
 Authorization: {{auth}}
 Content-Type: application/json
 
-{ "EndDate": "2026-09-15" }
+{ "EndDate": "2026-06-20" }
 
 ### 6c) ❌ FAIL — activate the draft. The framework evaluates every affected
 ###     constraint and reports them together. You'll see
@@ -307,6 +314,71 @@ Content-Type: application/json
 ###     the begin/end-date and travel-period constraints that also trip when
 ###     the window shrinks).
 POST {{service}}/Travels(ID=1,IsActiveEntity=false)/TravelService.draftActivate
+Authorization: {{auth}}
+Content-Type: application/json
+
+{}
+
+
+### =============================================================================
+### STEP 3 — Add your own constraint (the "no overlapping travels per customer"
+### rule from the workshop). Only relevant after you've applied the Step 3.1
+### edit to `srv/travel-constraints.cds`.
+### =============================================================================
+
+### -----------------------------------------------------------------------------
+### 3.2) ❌ FAIL — create a travel whose window overlaps an existing travel of
+###                the same customer. Returns:
+###                  message: "ASSERT_NO_OVERLAPPING_TRAVELS_PER_CUSTOMER"
+###                  (or the resolved i18n text once you've added the key)
+###
+###                Customer 000001 owns several travels around late July / early
+###                August in the seed data. Adjust the dates if your rolling
+###                window has drifted.
+### -----------------------------------------------------------------------------
+POST {{service}}/Travels
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "Description":  "Overlap trip",
+  "BeginDate":    "2026-07-25",
+  "EndDate":      "2026-07-30",
+  "Currency_code":"USD",
+  "Agency_ID":    "070001",
+  "Customer_ID":  "000001"
+}
+
+
+### -----------------------------------------------------------------------------
+### 3.4a) Put Travel 1635 (single-owner customer 000028) into edit mode.
+###       Step 3.4 needs a truly single-owner travel so the self-exclusion
+###       clause (`ID != $self.ID`) is the only reason the check should pass.
+###       In the pristine seed, most customers own multiple travels with
+###       overlapping windows — Travel 1635 is one of the few clean cases.
+###       Find another via
+###         GET /Travels?$apply=groupby((Customer_ID),aggregate(ID with countdistinct as cnt))&$filter=cnt eq 1
+### -----------------------------------------------------------------------------
+POST {{service}}/Travels(ID=1635,IsActiveEntity=true)/TravelService.draftEdit
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "PreserveChanges": true }
+
+### -----------------------------------------------------------------------------
+### 3.4b) Change Description only.
+### -----------------------------------------------------------------------------
+PATCH {{service}}/Travels(ID=1635,IsActiveEntity=false)
+Authorization: {{auth}}
+Content-Type: application/json
+
+{ "Description": "renamed" }
+
+### -----------------------------------------------------------------------------
+### 3.4c) ✅ SUCCESS — activate the draft. The row is not treated as its own
+###                    overlap, thanks to `ID != $self.ID`.
+### -----------------------------------------------------------------------------
+POST {{service}}/Travels(ID=1635,IsActiveEntity=false)/TravelService.draftActivate
 Authorization: {{auth}}
 Content-Type: application/json
 

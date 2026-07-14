@@ -27,7 +27,7 @@ An action can have **`@from` without `@to`** (a guard-only rule — the action r
 Open the two files that together define the Travels state machine:
 
 - **[xstravels/srv/travel-flows.cds](../xstravels/srv/travel-flows.cds)** — the flow annotation itself.
-- **[xstravels/db/schema.cds](../xstravels/db/schema.cds)** — the `TravelStatus` code-list with the four possible codes.
+- **[xstravels/db/schema.cds](../xstravels/db/schema.cds)** — the `TravelStatus` code-list with the five possible codes.
 
 ### The state machine
 
@@ -57,11 +57,10 @@ annotate TravelService.Travels with @flow.status: Status actions {
 
 ## Step 2 — Walk the state machine
 
-Prepare the app if you haven't already:
+Start the app if you haven't already:
 
 ```bash
 cd xstravels
-npm run update-dates   # once, to anchor seed data to today
 cds watch
 ```
 
@@ -88,7 +87,7 @@ When an action allows more than one source state (like `reopenTravel`, which sta
 
 ### Option B — Try it in the Fiori UI
 
-Open http://localhost:4004 and navigate to the **Travels** app.
+Open http://localhost:4004 and navigate to the **Travels** app. When prompted to sign in, use **`alice`** as the user and leave the password field **empty** (mocked auth).
 
 - On the object page for any Open travel, the buttons **Accept / Reject / Deduct Discount** are visible; **Reopen** is hidden.
 - Click **Accept** — the Status flips to *Accepted*, the three "Open-only" buttons disappear, and **Reopen** appears.

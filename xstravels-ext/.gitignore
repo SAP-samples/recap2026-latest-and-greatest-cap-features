@@ -1,4 +1,5 @@
 node_modules/
+@cds-models/
 gen/
 package-lock.json
 *.sqlite

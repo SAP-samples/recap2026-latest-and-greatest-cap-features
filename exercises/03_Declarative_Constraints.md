@@ -74,15 +74,12 @@ Have a quick look at [xstravels/app/\_i18n/messages_en.properties](../xstravels/
 
 ## Step 2 — See constraints fire against a running app
 
-Before running the tests, make sure the seed data is anchored to today so realistic dates are available:
+Start the app:
 
 ```bash
 cd xstravels
-npm run update-dates
 cds watch
 ```
-
-This rewrites the CSV data files in place (local-only — don't commit) so that flights, travels and bookings sit in a ±60/+90-day window around today.
 
 ### Option A — Run the HTTP requests
 
@@ -110,7 +107,7 @@ When more than one constraint is violated by the same write, the framework group
 
 ### Option B — Try it in the Fiori UI
 
-Open http://localhost:4004 and navigate to the **Travels** app.
+Open http://localhost:4004 and navigate to the **Travels** app. When prompted to sign in, use **`alice`** as the user and leave the password field **empty** (mocked auth).
 
 - Click **Create** and try to save a travel with a blank Description, an empty Agency, or an EndDate that lies before BeginDate — the constraints show up as **field-level messages** next to the offending inputs.
 - Open an existing travel, click **Edit** to enter draft mode, and edit one of its bookings — try changing the booking's currency to `EUR` while the travel is in `USD`, or setting a `Flight_date` outside the travel window. On **Save**, the same constraint messages appear at the top of the object page.
@@ -214,25 +211,28 @@ Send the same failing POST again — this time the `message` is the human-readab
 
 ### 3.4 Verify the constraint does not misfire on self-updates
 
-Prove the `ID != $self.ID` clause pulls its weight — edit an *existing* travel of the same customer without touching its dates, and confirm the write goes through. Using the draft flow shown in the HTTP file:
+Prove the `ID != $self.ID` clause pulls its weight — edit an *existing* travel whose customer has **no other travels**, so the only sibling the check could find would be the row being edited itself.
+
+> ⚠️ **Pick the travel carefully.** With the default seed data, many customers already own multiple travels whose date windows overlap (e.g. customer `000001` owns Travels 550, 2530, 3181 … which all overlap in July). Editing any of them still trips the new rule — but that's the seed's fault, not the constraint's. **Travel 1635** (owned by customer `000028`) is a truly single-owner row and works cleanly. You can find another safe pick via
+> `GET /odata/v4/travel/Travels?$apply=groupby((Customer_ID),aggregate(ID with countdistinct as cnt))&$filter=cnt eq 1&$top=5`.
 
 ```http
-### Put existing Travel 550 (Customer 000001) into edit mode
-POST http://localhost:4004/odata/v4/travel/Travels(ID=550,IsActiveEntity=true)/TravelService.draftEdit
+### Put Travel 1635 (single-owner customer 000028) into edit mode
+POST http://localhost:4004/odata/v4/travel/Travels(ID=1635,IsActiveEntity=true)/TravelService.draftEdit
 Authorization: Basic alice:
 Content-Type: application/json
 
 { "PreserveChanges": true }
 
-### Change Description only, activate the draft
-PATCH http://localhost:4004/odata/v4/travel/Travels(ID=550,IsActiveEntity=false)
+### Change Description only
+PATCH http://localhost:4004/odata/v4/travel/Travels(ID=1635,IsActiveEntity=false)
 Authorization: Basic alice:
 Content-Type: application/json
 
 { "Description": "renamed" }
 
-###
-POST http://localhost:4004/odata/v4/travel/Travels(ID=550,IsActiveEntity=false)/TravelService.draftActivate
+### Activate the draft
+POST http://localhost:4004/odata/v4/travel/Travels(ID=1635,IsActiveEntity=false)/TravelService.draftActivate
 Authorization: Basic alice:
 Content-Type: application/json
 

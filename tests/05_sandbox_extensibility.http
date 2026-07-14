@@ -14,6 +14,14 @@
 ###             tenant t1 subscribed; extension pushed via `cds push`.
 ###
 ### The requests are identical between paths — only the base URL changes.
+###
+### Reading responses:
+###   204 No Content → success. submitForReview / reopenTravel return no body
+###     on success; this is the expected outcome, NOT an error. Re-read the
+###     travel with the follow-up GET to confirm the Status_code flipped.
+###   409 Conflict → either the framework's `@from` guard (INVALID_FLOW_...)
+###     or the extension handler's `req.reject(409, "...")`. Both look the
+###     same to the client, by design.
 ### =============================================================================
 
 @app  = http://localhost:4006
@@ -57,8 +65,8 @@ Content-Type: application/json
 GET {{service}}/Travels?$filter=ID eq 13&$select=ID,Status_code,TotalPrice,Currency_code
 Authorization: {{auth}}
 
-### ❌ Expensive travel → 409, "Total price 10322.5000 exceeds the 10000 policy limit"
-POST {{service}}/Travels(ID=2,IsActiveEntity=true)/TravelService.submitForReview
+### ❌ Expensive travel → 409, "Total price 12405 exceeds the 10000 policy limit"
+POST {{service}}/Travels(ID=6,IsActiveEntity=true)/TravelService.submitForReview
 Authorization: {{auth}}
 Content-Type: application/json
 
@@ -72,16 +80,16 @@ Content-Type: application/json
 ###     if bookings.some(b => b.FlightPrice > 5000) → "At least one booking ..."
 ### =============================================================================
 
-### Prep: Travel 100 is seeded as Rejected, and one booking sits at 5852.
+### Prep: Travel 660 is seeded as Rejected in USD, and its single booking sits at 6053.
 ### Reopen it first so it becomes Open and eligible for submitForReview.
-POST {{service}}/Travels(ID=100,IsActiveEntity=true)/TravelService.reopenTravel
+POST {{service}}/Travels(ID=660,IsActiveEntity=true)/TravelService.reopenTravel
 Authorization: {{auth}}
 Content-Type: application/json
 
 {}
 
 ### ❌ Per-booking cap → 409, "At least one booking exceeds the 5000 per-booking cap"
-POST {{service}}/Travels(ID=100,IsActiveEntity=true)/TravelService.submitForReview
+POST {{service}}/Travels(ID=660,IsActiveEntity=true)/TravelService.submitForReview
 Authorization: {{auth}}
 Content-Type: application/json
 
@@ -127,13 +135,13 @@ Content-Type: application/json
 ###     USD MaxBooking = 5000     SGD MaxBooking = 7000
 ### =============================================================================
 
-### ✅ SGD travel, Total ~11 963 → passes (SGD MaxTravel is 14 000)
-POST {{service}}/Travels(ID=182,IsActiveEntity=true)/TravelService.submitForReview
+### ✅ SGD travel, Total ~10 927 → passes (SGD MaxTravel is 14 000, would fail under USD's 10 000 cap)
+POST {{service}}/Travels(ID=533,IsActiveEntity=true)/TravelService.submitForReview
 Authorization: {{auth}}
 Content-Type: application/json
 
 {}
 
 ### Confirm SGD travel is now InReview
-GET {{service}}/Travels?$filter=ID eq 182&$select=ID,Status_code,TotalPrice,Currency_code
+GET {{service}}/Travels?$filter=ID eq 533&$select=ID,Status_code,TotalPrice,Currency_code
 Authorization: {{auth}}
