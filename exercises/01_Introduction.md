@@ -1,4 +1,4 @@
- # Exercise 0 - Setup
+ # Exercise 1 - Setup
  
  In this exercise, you will clone the repository and set up your development environment.
  
