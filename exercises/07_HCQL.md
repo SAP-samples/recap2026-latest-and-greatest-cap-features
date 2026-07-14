@@ -43,6 +43,8 @@
 
  ### 3. Query with CQL text (plain text body)
 
+ > **Disclaimer:** The plain-text CQL notation used in steps 3, 5, and 6 is **Node.js only** and currently **experimental**. For a cross-runtime approach that also works on CAP Java, use the CQN JSON format shown in step 4.
+
  Open [`tests/07_hcql.http`](../tests/07_hcql.http) in VS Code (with the [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension installed) and send the first request — **"CQL text — select travels with basic fields"**:
 
  ```
