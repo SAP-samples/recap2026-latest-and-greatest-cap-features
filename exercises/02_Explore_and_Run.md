@@ -27,7 +27,7 @@ Now run the application locally and walk through the main flow.
 
 1. Start the CAP server with `cds watch`.
 2. Open the local URL shown in the terminal (usually `http://localhost:4004`).
-3. Launch the Fiori app from the welcome page.
+3. Launch the Fiori app from the welcome page. When prompted to sign in, use **`alice`** as the user and leave the password field **empty** — the sample runs with mocked auth in development.
 4. In the app, open the list of travels and inspect the available entries.
 5. Select one travel to view its object page and review the related details, including flight bookings.
 6. Create a new travel using the draft flow.
