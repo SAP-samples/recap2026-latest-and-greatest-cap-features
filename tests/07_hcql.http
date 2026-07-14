@@ -1,0 +1,94 @@
+### =============================================================================
+### Exercise 7 — HCQL (CQL over HTTP)
+###
+### Exercises the HCQL protocol adapter on the TravelService.
+### Covers CQL text queries (text/plain) and CQN JSON queries (application/json).
+###
+### How to run:
+### 1. Enable HCQL on the service (see exercise Step 1).
+### 2. Start the app:  `cds watch`   (defaults to port 4004)
+### 3. Open this file in VS Code with the "REST Client" extension installed,
+###    then click "Send Request" above each block.
+###
+### Every request runs under user `alice` (mocked auth).
+### =============================================================================
+
+@host    = http://localhost:4004
+@hcql    = {{host}}/hcql/travel
+@auth    = Basic alice:
+
+
+### =============================================================================
+### 7.3 — Query with CQL text (plain text body)
+###   Sends a CQL SELECT as plain text. Returns travels with selected fields.
+### =============================================================================
+
+### CQL text — select travels with basic fields
+POST {{hcql}}
+Authorization: {{auth}}
+Content-Type: text/plain
+
+SELECT from Travels { ID, Description, BeginDate, EndDate, TotalPrice, Currency.code as Currency }
+
+
+### =============================================================================
+### 7.4 — Query with CQN JSON body
+###   Same query as above, but expressed as CQN JSON notation.
+###   This format works on both CAP Node.js and CAP Java.
+### =============================================================================
+
+### CQN JSON — select travels (cross-runtime format)
+POST {{hcql}}
+Authorization: {{auth}}
+Content-Type: application/json
+
+{
+  "SELECT": {
+    "from": { "ref": ["Travels"] },
+    "columns": [
+      { "ref": ["ID"] },
+      { "ref": ["Description"] },
+      { "ref": ["BeginDate"] },
+      { "ref": ["EndDate"] },
+      { "ref": ["TotalPrice"] },
+      { "ref": ["Currency", "code"], "as": "Currency" }
+    ],
+    "limit": { "rows": { "val": 5 } }
+  }
+}
+
+
+### =============================================================================
+### 7.5 — Use expands to query nested data
+###   Query travels with their bookings including flight details resolved
+###   through associations.
+### =============================================================================
+
+### CQL text — travels with nested bookings (expand)
+POST {{hcql}}
+Authorization: {{auth}}
+Content-Type: text/plain
+
+SELECT from Travels {
+  ID, Description, Status.name as Status,
+  Bookings {
+    Pos, Flight.date as FlightDate,
+    Flight.airline as Airline,
+    FlightPrice, Currency.code as Currency
+  }
+} limit 2
+
+
+### =============================================================================
+### 7.6 — Filtering and ordering
+###   Query only open travels, sorted by begin date descending.
+### =============================================================================
+
+### CQL text — open travels ordered by BeginDate desc
+POST {{hcql}}
+Authorization: {{auth}}
+Content-Type: text/plain
+
+SELECT from Travels {
+  ID, Description, BeginDate, TotalPrice
+} where Status.code = 'O' order by BeginDate desc limit 5

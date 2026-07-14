@@ -43,76 +43,80 @@
 
  ### 3. Query with CQL text (plain text body)
 
- Open a new terminal and send a CQL query as plain text:
+ Open [`tests/07_hcql.http`](../tests/07_hcql.http) in VS Code (with the [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension installed) and send the first request — **"CQL text — select travels with basic fields"**:
 
- ```bash
- curl -X POST http://localhost:4004/hcql/travel \
-   -H "Content-Type: text/plain" \
-   -u alice: \
-   -d 'SELECT from Travels { ID, Description, BeginDate, EndDate, TotalPrice, Currency.code as Currency }'
+ ```
+ POST {{hcql}}
+ Authorization: {{auth}}
+ Content-Type: text/plain
+
+ SELECT from Travels { ID, Description, BeginDate, EndDate, TotalPrice, Currency.code as Currency }
  ```
 
- > **Note:** We use `-u alice:` for mock authentication. In development mode, CAP uses mocked users by default.
+ > **Note:** The `.http` file uses `Basic alice:` for mock authentication. In development mode, CAP uses mocked users by default.
 
  You should receive a JSON response with travel records containing just the selected fields.
 
  ### 4. Query with CQN JSON body
 
- Now try the same query using the CQN JSON notation:
+ Now try the same query using the CQN JSON notation. In `tests/07_hcql.http`, send the request **"CQN JSON — select travels (cross-runtime format)"**:
 
- ```bash
- curl -X POST http://localhost:4004/hcql/travel \
-   -H "Content-Type: application/json" \
-   -u alice: \
-   -d '{
-     "SELECT": {
-       "from": { "ref": ["Travels"] },
-       "columns": [
-         { "ref": ["ID"] },
-         { "ref": ["Description"] },
-         { "ref": ["BeginDate"] },
-         { "ref": ["EndDate"] },
-         { "ref": ["TotalPrice"] },
-         { "ref": ["Currency", "code"], "as": "Currency" }
-       ],
-       "limit": { "rows": { "val": 5 } }
-     }
-   }'
+ ```
+ POST {{hcql}}
+ Authorization: {{auth}}
+ Content-Type: application/json
+
+ {
+   "SELECT": {
+     "from": { "ref": ["Travels"] },
+     "columns": [
+       { "ref": ["ID"] },
+       { "ref": ["Description"] },
+       { "ref": ["BeginDate"] },
+       { "ref": ["EndDate"] },
+       { "ref": ["TotalPrice"] },
+       { "ref": ["Currency", "code"], "as": "Currency" }
+     ],
+     "limit": { "rows": { "val": 5 } }
+   }
+ }
  ```
 
  The result is the same — CQN JSON is the cross-runtime format that works on both CAP Node.js and CAP Java.
 
  ### 5. Use expands to query nested data
 
- One of HCQL's strengths is native support for deep reads with expands. Query travels with their bookings:
+ One of HCQL's strengths is native support for deep reads with expands. In `tests/07_hcql.http`, send the request **"CQL text — travels with nested bookings (expand)"**:
 
- ```bash
- curl -X POST http://localhost:4004/hcql/travel \
-   -H "Content-Type: text/plain" \
-   -u alice: \
-   -d 'SELECT from Travels {
-     ID, Description, Status.name as Status,
-     Bookings {
-       Pos, Flight.date as FlightDate,
-       Flight.airline as Airline,
-       FlightPrice, Currency.code as Currency
-     }
-   } limit 2'
+ ```
+ POST {{hcql}}
+ Authorization: {{auth}}
+ Content-Type: text/plain
+
+ SELECT from Travels {
+   ID, Description, Status.name as Status,
+   Bookings {
+     Pos, Flight.date as FlightDate,
+     Flight.airline as Airline,
+     FlightPrice, Currency.code as Currency
+   }
+ } limit 2
  ```
 
  You should see travels with their nested bookings, including flight details resolved through associations.
 
  ### 6. Add filtering and ordering
 
- Query only open travels, sorted by begin date:
+ Query only open travels, sorted by begin date. In `tests/07_hcql.http`, send the last request **"CQL text — open travels ordered by BeginDate desc"**:
 
- ```bash
- curl -X POST http://localhost:4004/hcql/travel \
-   -H "Content-Type: text/plain" \
-   -u alice: \
-   -d "SELECT from Travels {
-     ID, Description, BeginDate, TotalPrice
-   } where Status.code = 'O' order by BeginDate desc limit 5"
+ ```
+ POST {{hcql}}
+ Authorization: {{auth}}
+ Content-Type: text/plain
+
+ SELECT from Travels {
+   ID, Description, BeginDate, TotalPrice
+ } where Status.code = 'O' order by BeginDate desc limit 5
  ```
 
  ### 7. Use HCQL from a CAP client (bonus)
