@@ -11,7 +11,11 @@
 ###   Path B — production-like tenant push (port 4004)
 ###     Prereq: xstravels has multitenancy + sandbox enabled;
 ###             sidecar on 4005; main app on 4004 with --with-mtx;
-###             tenant t1 subscribed; extension pushed via `cds push`.
+###             tenant t1 subscribed  (cds subscribe t1 --to http://localhost:4005 -u yves:);
+###             extension pushed      (cds push --to http://localhost:4005 -u bob:).
+###
+### The requests below fire against the app itself and run as `alice` (admin).
+### Only the sidecar CLI calls (subscribe/push/pull) need the other users.
 ###
 ### The requests are identical between paths — only the base URL changes.
 ###

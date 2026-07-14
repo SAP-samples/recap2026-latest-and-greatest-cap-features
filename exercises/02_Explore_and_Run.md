@@ -27,7 +27,7 @@ Now run the application locally and walk through the main flow.
 
 1. Start the CAP server with `cds watch`.
 2. Open the local URL shown in the terminal (usually `http://localhost:4004`).
-3. Launch the Fiori app from the welcome page.
+3. Launch the Fiori app from the welcome page. When prompted to sign in, use **`alice`** as the user and leave the password field **empty** — the sample runs with mocked auth in development.
 4. In the app, open the list of travels and inspect the available entries.
 5. Select one travel to view its object page and review the related details, including flight bookings.
 6. Create a new travel using the draft flow.
@@ -44,6 +44,6 @@ This gives you a first end-to-end impression of how CDS models, CAP services, an
 
  You also started the application locally, navigated through the travel list and detail pages, and used the draft flow to create and update travel data.
 
- With this baseline, you are now ready to dive deeper into business logic and validation patterns in the next exercise.
+ With this baseline, you are ready to explore the remaining exercises. Each is **self-contained** — pick whichever topic sounds most interesting; you don't have to go in order.
 
- Continue to - [Exercise 3 - Declarative Constraints](03_Declarative_Constraints.md)
+ If you'd like a natural next step, [Exercise 3 - Declarative Constraints](03_Declarative_Constraints.md) shows how validation logic moves from JavaScript handlers into the CDS model.

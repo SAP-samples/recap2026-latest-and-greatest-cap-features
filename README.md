@@ -17,6 +17,8 @@ To follow the exercises, you need the following things to be installed on your c
 
 ## Exercises
 
+Each exercise is **self-contained** — after finishing the setup in Exercise 1 you can jump into whichever topic interests you most. Any Exercise-4 or Exercise-5 dependency (e.g. edits to `travel-flows.cds`) is spelled out at the top of the file, so out-of-order reading works.
+
 - [Exercise 1 - Setup](exercises/01_Introduction.md)
 - [Exercise 2 - Explore and Run the App](exercises/02_Explore_and_Run.md)
 - [Exercise 3 - Declarative Constraints](exercises/03_Declarative_Constraints.md)
