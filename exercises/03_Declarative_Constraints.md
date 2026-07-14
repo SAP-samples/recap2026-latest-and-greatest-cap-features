@@ -161,6 +161,7 @@ Save the file and `cds watch` reloads automatically.
 Send this request against a customer that already has a travel in the seed data. (Run the *Helpers → List a couple of Travels* request first to find a customer + a period that collides with an existing one; customer `000001` is a safe bet.)
 
 ```http
+###
 POST http://localhost:4004/odata/v4/travel/Travels
 Content-Type: application/json
 Authorization: Basic alice:
@@ -230,6 +231,7 @@ Content-Type: application/json
 
 { "Description": "renamed" }
 
+###
 POST http://localhost:4004/odata/v4/travel/Travels(ID=550,IsActiveEntity=false)/TravelService.draftActivate
 Authorization: Basic alice:
 Content-Type: application/json
