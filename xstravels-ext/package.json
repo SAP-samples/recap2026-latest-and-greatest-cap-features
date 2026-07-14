@@ -10,7 +10,7 @@
     "typer": "npx @cap-js/cds-typer '*'"
   },
   "dependencies": {
-    "@sap/cds-oyster": "^0.4"
+    "@sap/cds-oyster": "^0.5"
   },
   "devDependencies": {
     "@cap-js/cds-typer": "^0.40",
