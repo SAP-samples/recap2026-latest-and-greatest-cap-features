@@ -181,4 +181,3 @@
  - Query your service using natural language from an AI agent (optional)
  - Understand how tool calls are translated into CQL queries
 
- Continue to - [Exercise 10 - Recap and Next Steps](10_Recap.md)
