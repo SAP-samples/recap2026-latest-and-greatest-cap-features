@@ -20,11 +20,6 @@
     "#cds-models/*": "./@cds-models/*/index.js"
   },
   "cds": {
-    "server": { "port": 4006 },
-    "requires": {
-      "code-extensibility": {
-        "runtime": "debug"
-      }
-    }
+    "server": { "port": 4006 }
   }
 }
