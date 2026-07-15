@@ -43,7 +43,7 @@ Today `submitForReview` is a pure state transition — every open travel can be 
 
 The pattern we introduce here:
 
-1. Declare an **extension service** (`@kind: 'ext-service'`) that defines an action `validateReview` and exposes read-only projections of the data the extension needs.
+1. Declare an **extension service** (`@extensible.code`) that defines an action `validateReview` and exposes read-only projections of the data the extension needs.
 2. Wire that action into `submitForReview` as a `before` handler. It runs before the framework's `@to` transition.
 3. When no extension is deployed, the action call is a **silent no-op** — the transition proceeds normally.
 4. When an extension **is** deployed, its handler runs inside a sandboxed VM (Node.js in debug, WebAssembly in production). Reading data is allowed only through the read-only projections. `req.reject(...)` vetoes the transition.
@@ -71,23 +71,9 @@ Also install it in the sidecar so it can process extension pushes:
 cd mtx/sidecar && npm i @sap/cds-oyster && cd ../..
 ```
 
-Add the `code-extensibility` block to the `cds.requires` section of `xstravels/package.json`:
+That's the whole setup. `cds-oyster` picks sensible defaults out of the box: the **mocked** sandbox in development (so `console.log` works and you can attach a debugger), the **wasm** sandbox in production, and `@extensible.code` as the annotation gating what customers may extend. No extra config block is needed.
 
-```jsonc
-"cds": {
-  "profile": "with-mtx-sidecar",
-  "requires": {
-    "[production]":   { "multitenancy": true },
-    "[with-mtx]":     { "multitenancy": true },
-    "extensibility":  true,
-    "code-extensibility": {
-      "runtime":   "oyster",
-      "maxTime":   1000,
-      "maxMemory": 4
-    }
-  }
-}
-```
+If you want to tighten sandbox execution limits or opt back into the legacy allow-list, add a `code-extensibility` block under `cds.requires` — the options are documented in the [cds-oyster README](https://www.npmjs.com/package/@sap/cds-oyster). For this workshop we stay on the defaults.
 
 Start the sidecar in a **separate terminal** — it must be up **before** the main app so the app can resolve the mtx bindings on boot:
 
@@ -125,14 +111,14 @@ cds subscribe t1 --to http://localhost:4005 -u yves:
 
 ## Step 2 — Declare the extension service
 
-The extension service is the **fence** that decides what an extension can see and do. Everything reachable from an `@kind: 'ext-service'` service is available to extension handlers; nothing else is.
+The extension service is the **fence** that decides what an extension can see and do. Everything reachable from an `@extensible.code` service is available to extension handlers; nothing else is.
 
 Create `xstravels/srv/extension-service.cds`:
 
 ```cds
 using { sap.capire.travels as db } from '../db/schema';
 
-@kind: 'ext-service'
+@extensible.code
 service TravelExtensionService {
 
   // Extension point: called BEFORE a travel transitions from Open to InReview.
@@ -148,7 +134,9 @@ service TravelExtensionService {
 Two things worth noting:
 
 - **The action's payload is minimal** — just the travel ID plus who kicked off the review. The handler uses the read-only projections to look up whatever else it needs. Keeping the payload small keeps the API stable.
-- **No handler for the action is registered here.** The framework treats an action on an `@kind: 'ext-service'` as an **extension point**: if there's no implementation, the call returns silently.
+- **No handler for the action is registered here.** The framework treats an action on an `@extensible.code` service as an **extension point**: if there's no implementation, the call returns silently.
+
+> **Note**: `@kind: 'ext-service'` (used in older versions of `cds-oyster`) is a deprecated shortcut for `@extensible.code` at service level. Both work; prefer the annotation in new code.
 
 `cds watch` reloads. You should now see two services in the log — `TravelService` at `/odata/v4/travel` (still your main app) and `TravelExtensionService` at `/odata/v4/travel-extension` (the fence for extensions).
 
@@ -486,28 +474,30 @@ Two things to notice:
 
 The policy is now editable **without touching handler code**: change the CSV (or, in a deployed tenant, INSERT into `CurrencyLimits`), and the caps take effect on the next request.
 
-## Step 6 — Iterate: `debug` vs `oyster` runtime
+## Step 6 — Iterate: `mocked` vs `wasm` sandbox
 
-`code-extensibility.runtime` in the xstravels `package.json` can be either:
+`cds-oyster` runs extension handlers inside a sandbox. Two flavours are available:
 
-| Runtime | Where handlers run | `console.log` | Debugger |
+| Sandbox | Where handlers run | `console.log` | Debugger |
 |---------|--------------------|:---:|:---:|
-| `oyster` | WebAssembly sandbox | rejected at push | no |
-| `debug`  | Node.js `vm` in-process | printed to app log | yes (VS Code attach) |
+| `wasm`   | WebAssembly sandbox (production default) | rejected at push | no |
+| `mocked` | Node.js `vm` in-process (development default) | printed to app log | yes (VS Code attach) |
 
-Set it to `"debug"` during local iteration, then switch to `"oyster"` before you're done. The push command will reject `console` statements when the runtime is oyster — so you'll notice any leftover debug output immediately.
+`mocked` is the default in development and `wasm` in production, so a well-configured project switches automatically. If you want to try the production sandbox locally, run `cds watch --wasm`. `cds push` rejects `console.*` statements when the target sandbox is `wasm` — so you'll catch any leftover debug output during the push, not later at runtime.
+
+Set an explicit `code-extensibility.sandbox` under `cds.requires` if you need to override the default (rare in practice).
 
 ## Step 7 — What we skipped, and why
 
 To keep this chapter tight, we didn't cover:
 
 - **Custom entities in the extension** — add `entity MyPolicy { key ID: UUID; name: String; }` to `srv/extension.cds` and it'll be deployed to the tenant DB on push. Handy for storing policy data alongside the handler.
-- **`@extensible.code`** — the fine-grained annotation that opens *specific* entities in the main service for CRUD-hook extensions (e.g. `after-READ` on `TravelService.Travels`). We stayed inside the ext-service fence, which is cleaner for a first extension.
+- **Fine-grained `@extensible.code`** — we opened the whole extension service at once. The annotation also takes an object form (`@(extensible.code: { create/read/update/delete/action: bool })`) to open specific operations on specific entities of the *regular* application service — for CRUD-hook extensions like `after-READ` on `TravelService.Travels`. See the [cds-oyster README](https://www.npmjs.com/package/@sap/cds-oyster).
 - **Draft draft support, i18n, testing, `cds push` in CI** — all in the full workshop.
 
 ## Summary
 
-- An **extension point** is an action on an `@kind: 'ext-service'` service, called from your main app's business logic. No implementation ⇒ silent no-op.
+- An **extension point** is an action on an `@extensible.code` service, called from your main app's business logic. No implementation ⇒ silent no-op.
 - Extension code lives in a **separate project** with a copy of your app's model (`.base/`) and runs in a sandbox. It can only see what the ext service projects.
 - The `cds push` workflow bundles the handler + model and activates it on the tenant, mediated by the mtx sidecar. (`cds pull` refreshes the local base model when the app's model changes — this template ships with `.base/` prebuilt, so you don't need to run it.)
 - **Design tip**: pass keys and identity in the action payload, keep data lookups in the handler. This keeps the ext-service contract minimal and forward-compatible.

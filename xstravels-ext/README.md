@@ -95,17 +95,18 @@ npm run typer
 ## Debugging locally
 
 The extension runs inside a sandboxed VM even during standalone `cds watch`.
-The runtime is set to `"debug"` in `package.json` (`cds.requires.code-extensibility.runtime`)
-— that means the handler executes in a Node.js `vm` context in the same
-process as the server, so `console.log` prints to the `cds watch` terminal
-and the VS Code debugger can attach to it.
+By default `cds-oyster` picks the **mocked** sandbox in development (a
+Node.js `vm` context in the same process as the server), which means
+`console.log` prints to the `cds watch` terminal and the VS Code debugger
+can attach to it. In production the **wasm** sandbox kicks in instead.
+Run `cds watch --wasm` to try the production sandbox locally.
 
 ### Console logs
 
 `console.log(...)` in `on-validateReview.js` appears in the terminal running
 `cds watch`. Handy for a quick "did we even get here" check. Remove before
-switching to the `oyster` runtime — `cds push` rejects handlers that call
-`console.*` when the runtime is `oyster`.
+pushing — `cds push` rejects handlers that call `console.*` when the target
+sandbox is `wasm`.
 
 ### Breakpoints in VS Code
 
@@ -138,8 +139,7 @@ switching to the `oyster` runtime — `cds push` rejects handlers that call
 
    | Value | What you'll see |
    |---|---|
-   | `req.data` | `{ travelID: 100, user: 'alice', timestamp: '2026-…' }` — the action's inputs. |
-   | `req.user` | The mocked user record — `id`, `roles`, `tenant`. |
+   | `req.data` | `{ travelID: 100, user: 'alice', timestamp: '2026-…' }` — the action's inputs. Identity has to come in through here; `req.user` is intentionally not exposed to the sandbox. |
    | `this.entities` | `{ Travels, Bookings, TravelAgencies }` — the read-only projections from `TravelExtensionService`. Nothing else is reachable, by design. |
    | `travel` (after `await SELECT.one`) | The full Travels row — `TotalPrice`, `Status_code`, `BookingFee`, etc. Confirms the query hit the right row. |
    | `bookings` (after `await SELECT.from`) | An array of Booking rows. Each has `Pos`, `Flight_ID`, `FlightPrice`, `Currency_code`, `BookingDate`. Empty array ⇒ our "no bookings" rule fires. |

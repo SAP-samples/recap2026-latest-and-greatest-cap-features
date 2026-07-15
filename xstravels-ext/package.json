@@ -10,7 +10,9 @@
     "typer": "npx @cap-js/cds-typer '*'"
   },
   "dependencies": {
-    "@sap/cds-oyster": "^0.4"
+    "@sap/cds": "^10",
+    "@sap/cds-oyster": "^0.5",
+    "@cap-js/sqlite": "^3"
   },
   "devDependencies": {
     "@cap-js/cds-typer": "^0.40",
@@ -20,11 +22,6 @@
     "#cds-models/*": "./@cds-models/*/index.js"
   },
   "cds": {
-    "server": { "port": 4006 },
-    "requires": {
-      "code-extensibility": {
-        "runtime": "debug"
-      }
-    }
+    "server": { "port": 4006 }
   }
 }
